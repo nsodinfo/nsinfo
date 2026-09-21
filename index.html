@@ -27,17 +27,6 @@
     <div class="muted">로그인한 사용자만 조회할 수 있습니다.</div>
   </div>
 
-  <div id="setup" class="card hidden">
-    <b>최초 연결 설정</b>
-    <p class="muted">Supabase의 Project URL과 <b>Publishable key</b>만 입력하세요. Secret key는 절대 입력하지 마세요.</p>
-    <input id="url" placeholder="https://xxxxx.supabase.co">
-    <div style="height:8px"></div>
-    <input id="key" placeholder="Publishable key">
-    <div style="height:10px"></div>
-    <button onclick="saveSetup()">연결정보 저장</button>
-    <div id="setupErr" class="error"></div>
-  </div>
-
   <div id="login" class="card hidden">
     <b>로그인</b>
     <div style="height:10px"></div>
@@ -46,7 +35,6 @@
     <input id="password" type="password" placeholder="비밀번호">
     <div style="height:10px"></div>
     <button onclick="signIn()">로그인</button>
-    <button class="secondary" onclick="resetSetup()">연결정보 다시 설정</button>
     <div id="loginErr" class="error"></div>
   </div>
 
@@ -69,19 +57,14 @@
 <script>
 let sb=null, rows=[];
 const $=id=>document.getElementById(id);
-function config(){return {url:localStorage.getItem('nalmes_sb_url')||'',key:localStorage.getItem('nalmes_sb_key')||''}}
-function makeClient(){const c=config(); if(!c.url||!c.key)return false; sb=supabase.createClient(c.url,c.key); return true}
-function init(){ if(!makeClient()){ $('setup').classList.remove('hidden'); return } checkSession() }
+const SUPABASE_URL = "https://ezguzkwjfpklbuoubuek.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Rs4gu3YZNaf6sVK7M9LHuQ_f-l46pCX";
+function makeClient(){ sb=supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY); return true }
+function init(){ makeClient(); checkSession() }
 async function checkSession(){
   const {data}=await sb.auth.getSession();
   if(data.session) showApp(data.session.user); else $('login').classList.remove('hidden');
 }
-function saveSetup(){
-  const u=$('url').value.trim(), k=$('key').value.trim();
-  if(!u.startsWith('https://')||!k){$('setupErr').textContent='Project URL과 Publishable key를 확인하세요.';return}
-  localStorage.setItem('nalmes_sb_url',u); localStorage.setItem('nalmes_sb_key',k); location.reload();
-}
-function resetSetup(){localStorage.removeItem('nalmes_sb_url');localStorage.removeItem('nalmes_sb_key');location.reload()}
 async function signIn(){
   $('loginErr').textContent='';
   const {data,error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});
