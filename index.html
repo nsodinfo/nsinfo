@@ -48,6 +48,10 @@
         <input id="search" class="grow" placeholder="거래처번호 · 거래처명 · 형번 · 수주번호 검색" oninput="render()">
         <button onclick="loadData()">새로고침</button>
       </div>
+      <label style="display:flex;align-items:center;gap:7px;margin-top:11px;font-size:14px;cursor:pointer">
+        <input id="hideComplete" type="checkbox" checked onchange="render()" style="width:auto">
+        완료 제외 (완료 · 예외완료 숨김)
+      </label>
       <div id="count" class="muted" style="margin-top:9px"></div>
     </div>
     <div id="list"></div>
@@ -94,8 +98,13 @@ function txt(v){return (v??'').toString()}
 function esc(v){return txt(v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 function render(){
   const q=$('search').value.trim().toLowerCase();
-  let filtered=rows.filter(r=>!q || [r.customer_no,r.customer_name,r.model,r.order_no].some(v=>txt(v).toLowerCase().includes(q)));
-  $('count').textContent=`전체 ${rows.length}건 · 검색결과 ${filtered.length}건`;
+  const hideComplete=$('hideComplete').checked;
+  let filtered=rows.filter(r=>{
+    const matched=!q || [r.customer_no,r.customer_name,r.model,r.order_no].some(v=>txt(v).toLowerCase().includes(q));
+    const completed=['완료','예외완료'].includes(txt(r.status).trim());
+    return matched && (!hideComplete || !completed);
+  });
+  $('count').textContent=`전체 ${rows.length}건 · 표시 ${filtered.length}건${hideComplete?' · 완료 제외':''}`;
   $('list').innerHTML=filtered.map(r=>`
     <div class="order">
       <div class="top"><div><div class="name">${esc(r.customer_name||'-')}</div><div class="meta">${esc(r.customer_no||'-')} · ${esc(r.model||'-')}</div></div><span class="badge">${esc(r.status||'-')}</span></div>
