@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <title>NALMES 압출·피막 현황</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif;background:#f5f6f8;color:#171717}
+    .wrap{max-width:900px;margin:auto;padding:18px}.card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-bottom:12px}
+    h1{font-size:21px;margin:0 0 4px}.muted{color:#6b7280;font-size:13px}.row{display:flex;gap:8px;flex-wrap:wrap}
+    input,button{font:inherit;border-radius:10px;padding:11px 12px;border:1px solid #d1d5db} input{width:100%;background:#fff}
+    button{cursor:pointer;background:#111827;color:#fff;border:0}.secondary{background:#e5e7eb;color:#111827}
+    .grow{flex:1;min-width:180px}.hidden{display:none}.statusbar{display:flex;justify-content:space-between;gap:10px;align-items:center}
+    .order{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:13px;margin:9px 0}
+    .top{display:flex;justify-content:space-between;gap:10px}.name{font-weight:700}.badge{white-space:nowrap;font-size:12px;border:1px solid #d1d5db;border-radius:999px;padding:4px 8px}
+    .meta{font-size:13px;color:#4b5563;margin-top:5px}.qty{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+    .q{background:#f9fafb;border-radius:9px;padding:8px;text-align:center}.q b{display:block;font-size:15px}.q span{font-size:11px;color:#6b7280}
+    .error{color:#b91c1c;font-size:13px;margin-top:8px}@media(max-width:520px){.wrap{padding:12px}.qty{grid-template-columns:repeat(3,1fr)}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>NALMES 압출·피막 현황</h1>
+    <div class="muted">로그인한 사용자만 조회할 수 있습니다.</div>
+  </div>
+
+  <div id="setup" class="card hidden">
+    <b>최초 연결 설정</b>
+    <p class="muted">Supabase의 Project URL과 <b>Publishable key</b>만 입력하세요. Secret key는 절대 입력하지 마세요.</p>
+    <input id="url" placeholder="https://xxxxx.supabase.co">
+    <div style="height:8px"></div>
+    <input id="key" placeholder="Publishable key">
+    <div style="height:10px"></div>
+    <button onclick="saveSetup()">연결정보 저장</button>
+    <div id="setupErr" class="error"></div>
+  </div>
+
+  <div id="login" class="card hidden">
+    <b>로그인</b>
+    <div style="height:10px"></div>
+    <input id="email" type="email" placeholder="이메일">
+    <div style="height:8px"></div>
+    <input id="password" type="password" placeholder="비밀번호">
+    <div style="height:10px"></div>
+    <button onclick="signIn()">로그인</button>
+    <button class="secondary" onclick="resetSetup()">연결정보 다시 설정</button>
+    <div id="loginErr" class="error"></div>
+  </div>
+
+  <div id="app" class="hidden">
+    <div class="card statusbar">
+      <div><b id="who"></b><div id="updated" class="muted"></div></div>
+      <button class="secondary" onclick="signOut()">로그아웃</button>
+    </div>
+    <div class="card">
+      <div class="row">
+        <input id="search" class="grow" placeholder="거래처번호 · 거래처명 · 형번 · 수주번호 검색" oninput="render()">
+        <button onclick="loadData()">새로고침</button>
+      </div>
+      <div id="count" class="muted" style="margin-top:9px"></div>
+    </div>
+    <div id="list"></div>
+  </div>
+</div>
+
+<script>
+let sb=null, rows=[];
+const $=id=>document.getElementById(id);
+function config(){return {url:localStorage.getItem('nalmes_sb_url')||'',key:localStorage.getItem('nalmes_sb_key')||''}}
+function makeClient(){const c=config(); if(!c.url||!c.key)return false; sb=supabase.createClient(c.url,c.key); return true}
+function init(){ if(!makeClient()){ $('setup').classList.remove('hidden'); return } checkSession() }
+async function checkSession(){
+  const {data}=await sb.auth.getSession();
+  if(data.session) showApp(data.session.user); else $('login').classList.remove('hidden');
+}
+function saveSetup(){
+  const u=$('url').value.trim(), k=$('key').value.trim();
+  if(!u.startsWith('https://')||!k){$('setupErr').textContent='Project URL과 Publishable key를 확인하세요.';return}
+  localStorage.setItem('nalmes_sb_url',u); localStorage.setItem('nalmes_sb_key',k); location.reload();
+}
+function resetSetup(){localStorage.removeItem('nalmes_sb_url');localStorage.removeItem('nalmes_sb_key');location.reload()}
+async function signIn(){
+  $('loginErr').textContent='';
+  const {data,error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});
+  if(error){$('loginErr').textContent='로그인 실패: '+error.message;return}
+  $('login').classList.add('hidden'); showApp(data.user);
+}
+async function signOut(){await sb.auth.signOut();location.reload()}
+async function showApp(user){
+  $('app').classList.remove('hidden'); $('who').textContent=user.email||'로그인됨'; await loadData();
+}
+async function loadData(){
+  $('count').textContent='데이터 불러오는 중...';
+  let all=[], from=0, size=1000;
+  while(true){
+    const {data,error}=await sb.from('nalmes_status').select('*').range(from,from+size-1);
+    if(error){$('count').textContent='조회 오류: '+error.message;return}
+    all=all.concat(data||[]);
+    if(!data || data.length<size)break;
+    from+=size;
+  }
+  rows=all;
+  const newest=rows.map(x=>x.updated_at).filter(Boolean).sort().pop();
+  $('updated').textContent=newest?'DB 갱신: '+new Date(newest).toLocaleString('ko-KR'):'';
+  render();
+}
+function txt(v){return (v??'').toString()}
+function esc(v){return txt(v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function render(){
+  const q=$('search').value.trim().toLowerCase();
+  let filtered=rows.filter(r=>!q || [r.customer_no,r.customer_name,r.model,r.order_no].some(v=>txt(v).toLowerCase().includes(q)));
+  $('count').textContent=`전체 ${rows.length}건 · 검색결과 ${filtered.length}건`;
+  $('list').innerHTML=filtered.map(r=>`
+    <div class="order">
+      <div class="top"><div><div class="name">${esc(r.customer_name||'-')}</div><div class="meta">${esc(r.customer_no||'-')} · ${esc(r.model||'-')}</div></div><span class="badge">${esc(r.status||'-')}</span></div>
+      <div class="meta">수주번호 ${esc(r.order_no||'-')} · 작지번호 ${esc(r.work_order_no||'-')} · 길이 ${esc(r.length||'-')}</div>
+      <div class="qty"><div class="q"><b>${esc(r.work_qty)}</b><span>작지수량</span></div><div class="q"><b>${esc(r.extrusion_qty)}</b><span>압출수량</span></div><div class="q"><b>${esc(r.coating_qty)}</b><span>피막수량</span></div></div>
+    </div>`).join('');
+}
+init();
+</script>
+</body>
+</html>
