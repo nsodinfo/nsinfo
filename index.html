@@ -107,7 +107,7 @@ function render(){
   $('count').textContent=`전체 ${rows.length}건 · 표시 ${filtered.length}건${hideComplete?' · 완료 제외':''}`;
   $('list').innerHTML=filtered.map(r=>`
     <div class="order">
-      <div class="top"><div><div class="name">${esc(r.customer_name||'-')}</div><div class="meta">${esc(r.customer_no||'-')} · ${esc(r.model||'-')}</div></div><span class="badge">${esc(r.status||'-')}</span></div>
+      <div class="top"><div><div class="name">${esc(r.customer_name||'-')}</div><div class="meta">${esc(r.customer_no||'-')} · ${esc(r.model||'-')} · ${esc(r.integrated_color||'-')}</div></div><span class="badge">${esc(r.status||'-')}</span></div>
       <div class="meta">수주번호 ${esc(r.order_no||'-')} · 작지번호 ${esc(r.work_order_no||'-')} · 길이 ${esc(r.length||'-')}</div>
       <div class="qty"><div class="q"><b>${esc(r.work_qty)}</b><span>작지수량</span></div><div class="q"><b>${esc(r.extrusion_qty)}</b><span>압출수량</span></div><div class="q"><b>${esc(r.coating_qty)}</b><span>피막수량</span></div></div>
     </div>`).join('');
