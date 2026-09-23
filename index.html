@@ -18,7 +18,11 @@
     .meta{font-size:13px;color:#4b5563;margin-top:5px}.qty{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
     .q{background:#f9fafb;border-radius:9px;padding:8px;text-align:center}.q b{display:block;font-size:15px}.q span{font-size:11px;color:#6b7280}
     .error{color:#b91c1c;font-size:13px;margin-top:8px}@media(max-width:520px){.wrap{padding:12px}.qty{grid-template-columns:repeat(3,1fr)}}
-  </style>
+  
+.excbtn{margin-top:10px;width:auto!important;min-width:88px;padding:8px 13px!important;border-radius:12px!important;font-size:14px!important;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+.exc-set{background:#fff!important;color:#1769d2!important;border:1.5px solid #6aa9ff!important}
+.exc-cancel{background:#fff!important;color:#d93025!important;border:1.5px solid #ff8a80!important}
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -111,7 +115,9 @@ function render(){
       <div class="top"><div><div class="name">${esc(r.customer_name||'-')}</div><div class="meta">${esc(r.customer_no||'-')} · ${esc(r.model||'-')} · ${esc(r.integrated_color||'-')}</div></div><span class="badge">${esc(r.exception_complete?'예외완료':(r.status||'-'))}</span></div>
       <div class="meta">수주번호 ${esc(r.order_no||'-')} · 작지번호 ${esc(r.work_order_no||'-')} · 길이 ${esc(r.length||'-')}</div>
       <div class="qty"><div class="q"><b>${esc(r.work_qty)}</b><span>작지수량</span></div><div class="q"><b>${esc(r.extrusion_qty)}</b><span>압출수량</span></div><div class="q"><b>${esc(r.coating_qty)}</b><span>피막수량</span></div></div>
-      <button class="excbtn" onclick="toggleException('${esc(r.order_no)}',${r.exception_complete?'false':'true'})">${r.exception_complete?'예외완료 취소':'예외완료 처리'}</button>
+      ${r.exception_complete
+        ? `<button class="excbtn exc-cancel" onclick="toggleException('${esc(r.order_no)}',false)">예외완료 취소</button>`
+        : (txt(r.status).trim()==='완료' ? '' : `<button class="excbtn exc-set" onclick="toggleException('${esc(r.order_no)}',true)">예외완료</button>`)}
     </div>`).join('');
 }
 async function toggleException(orderNo,value){
