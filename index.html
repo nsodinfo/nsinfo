@@ -14,7 +14,7 @@
     button{cursor:pointer;background:#111827;color:#fff;border:0}.secondary{background:#e5e7eb;color:#111827}
     .grow{flex:1;min-width:180px}.hidden{display:none}.statusbar{display:flex;justify-content:space-between;gap:10px;align-items:center}
     .order{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:13px;margin:9px 0}
-    .top{display:flex;justify-content:space-between;gap:10px}.name{font-weight:700}.badge{white-space:nowrap;font-size:12px;border:1px solid #d1d5db;border-radius:999px;padding:4px 8px}
+    .top{display:flex;justify-content:space-between;gap:10px}.name{font-weight:700}.badge{white-space:nowrap;font-size:12px;border:1px solid #d1d5db;border-radius:999px;padding:4px 8px}\n    .excbtn{margin-top:10px;width:100%;padding:9px 10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font-weight:700;cursor:pointer}
     .meta{font-size:13px;color:#4b5563;margin-top:5px}.qty{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
     .q{background:#f9fafb;border-radius:9px;padding:8px;text-align:center}.q b{display:block;font-size:15px}.q span{font-size:11px;color:#6b7280}
     .error{color:#b91c1c;font-size:13px;margin-top:8px}@media(max-width:520px){.wrap{padding:12px}.qty{grid-template-columns:repeat(3,1fr)}}
@@ -101,16 +101,27 @@ function render(){
   const hideComplete=$('hideComplete').checked;
   let filtered=rows.filter(r=>{
     const matched=!q || [r.customer_no,r.customer_name,r.model,r.order_no].some(v=>txt(v).toLowerCase().includes(q));
-    const completed=['완료','예외완료'].includes(txt(r.status).trim());
+    const effectiveStatus=r.exception_complete?'예외완료':txt(r.status).trim();
+    const completed=['완료','예외완료'].includes(effectiveStatus);
     return matched && (!hideComplete || !completed);
   });
   $('count').textContent=`전체 ${rows.length}건 · 표시 ${filtered.length}건${hideComplete?' · 완료 제외':''}`;
   $('list').innerHTML=filtered.map(r=>`
     <div class="order">
-      <div class="top"><div><div class="name">${esc(r.customer_name||'-')}</div><div class="meta">${esc(r.customer_no||'-')} · ${esc(r.model||'-')} · ${esc(r.integrated_color||'-')}</div></div><span class="badge">${esc(r.status||'-')}</span></div>
+      <div class="top"><div><div class="name">${esc(r.customer_name||'-')}</div><div class="meta">${esc(r.customer_no||'-')} · ${esc(r.model||'-')} · ${esc(r.integrated_color||'-')}</div></div><span class="badge">${esc(r.exception_complete?'예외완료':(r.status||'-'))}</span></div>
       <div class="meta">수주번호 ${esc(r.order_no||'-')} · 작지번호 ${esc(r.work_order_no||'-')} · 길이 ${esc(r.length||'-')}</div>
       <div class="qty"><div class="q"><b>${esc(r.work_qty)}</b><span>작지수량</span></div><div class="q"><b>${esc(r.extrusion_qty)}</b><span>압출수량</span></div><div class="q"><b>${esc(r.coating_qty)}</b><span>피막수량</span></div></div>
+      <button class="excbtn" onclick="toggleException('${esc(r.order_no)}',${r.exception_complete?'false':'true'})">${r.exception_complete?'예외완료 취소':'예외완료 처리'}</button>
     </div>`).join('');
+}
+async function toggleException(orderNo,value){
+  const msg=value?'이 오더를 예외완료 처리할까요?':'이 오더의 예외완료를 취소할까요?';
+  if(!confirm(msg)) return;
+  const {error}=await sb.rpc('set_nalmes_exception',{p_order_no:orderNo,p_value:value});
+  if(error){alert('예외완료 반영 실패: '+error.message);return}
+  const r=rows.find(x=>txt(x.order_no)===txt(orderNo));
+  if(r) r.exception_complete=value;
+  render();
 }
 init();
 </script>
