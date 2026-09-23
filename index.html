@@ -22,6 +22,11 @@
 .excbtn{margin-top:10px;width:auto!important;min-width:88px;padding:8px 13px!important;border-radius:12px!important;font-size:14px!important;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
 .exc-set{background:#fff!important;color:#1769d2!important;border:1.5px solid #6aa9ff!important}
 .exc-cancel{background:#fff!important;color:#d93025!important;border:1.5px solid #ff8a80!important}
+
+.top{align-items:flex-start!important;gap:10px}
+.top-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-shrink:0;flex-wrap:wrap}
+.top-actions .excbtn{margin-top:0!important;min-width:auto!important;padding:7px 11px!important;border-radius:999px!important;font-size:13px!important}
+.top-actions .badge{white-space:nowrap}
 </style>
 </head>
 <body>
@@ -112,12 +117,12 @@ function render(){
   $('count').textContent=`전체 ${rows.length}건 · 표시 ${filtered.length}건${hideComplete?' · 완료 제외':''}`;
   $('list').innerHTML=filtered.map(r=>`
     <div class="order">
-      <div class="top"><div><div class="name">${esc(r.customer_name||'-')}</div><div class="meta">${esc(r.customer_no||'-')} · ${esc(r.model||'-')} · ${esc(r.integrated_color||'-')}</div></div><span class="badge">${esc(r.exception_complete?'예외완료':(r.status||'-'))}</span></div>
+      <div class="top"><div><div class="name">${esc(r.customer_name||'-')}</div><div class="meta">${esc(r.customer_no||'-')} · ${esc(r.model||'-')} · ${esc(r.integrated_color||'-')}</div></div><div class="top-actions"><span class="badge">${esc(r.exception_complete?'예외완료':(r.status||'-'))}</span>${r.exception_complete
+        ? `<button class="excbtn exc-cancel" onclick="toggleException('${esc(r.order_no)}',false)">취소</button>`
+        : (txt(r.status).trim()==='완료' ? '' : `<button class="excbtn exc-set" onclick="toggleException('${esc(r.order_no)}',true)">예외완료</button>`)}</div></div>
       <div class="meta">수주번호 ${esc(r.order_no||'-')} · 작지번호 ${esc(r.work_order_no||'-')} · 길이 ${esc(r.length||'-')}</div>
       <div class="qty"><div class="q"><b>${esc(r.work_qty)}</b><span>작지수량</span></div><div class="q"><b>${esc(r.extrusion_qty)}</b><span>압출수량</span></div><div class="q"><b>${esc(r.coating_qty)}</b><span>피막수량</span></div></div>
-      ${r.exception_complete
-        ? `<button class="excbtn exc-cancel" onclick="toggleException('${esc(r.order_no)}',false)">예외완료 취소</button>`
-        : (txt(r.status).trim()==='완료' ? '' : `<button class="excbtn exc-set" onclick="toggleException('${esc(r.order_no)}',true)">예외완료</button>`)}
+
     </div>`).join('');
 }
 async function toggleException(orderNo,value){
