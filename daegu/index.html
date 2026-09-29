@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>대구중부 생산현황</title>
+<style>
+*{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif;background:#f5f6f8;color:#111}
+.wrap{max-width:760px;margin:auto;padding:14px}.top{position:sticky;top:0;background:#f5f6f8;padding:8px 0 10px;z-index:5}
+h1{font-size:20px;margin:4px 0 12px}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+input{font-size:16px;padding:11px;border:1px solid #ccc;border-radius:9px;min-width:0}.search{flex:1}
+button{border:0;border-radius:9px;padding:10px 12px;font-weight:700}.primary{background:#111;color:#fff}.ghost{background:#e8e9ec}
+.card{background:#fff;border-radius:12px;padding:13px;margin:10px 0;box-shadow:0 1px 4px #00000012}.head{display:flex;justify-content:space-between;gap:8px}
+.order{font-weight:800}.status{font-weight:800;white-space:nowrap}.sub{font-size:14px;color:#555;margin-top:4px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}.cell{background:#f6f7f9;border-radius:8px;padding:7px;text-align:center;font-size:12px}.cell b{display:block;font-size:15px;margin-top:2px}
+.actions{display:flex;justify-content:flex-end;margin-top:10px}.exc{background:#eceef1}.danger{background:#111;color:#fff}
+.hidden{display:none}.msg{text-align:center;color:#666;padding:30px 5px}.login{max-width:420px;margin:80px auto;background:#fff;padding:22px;border-radius:14px}.login input{width:100%;margin:5px 0}
+.small{font-size:12px;color:#777}.badge{font-size:12px;background:#eee;padding:3px 7px;border-radius:20px}
+</style>
+</head>
+<body>
+<div id="login" class="login">
+<h1>대구중부 생산현황</h1>
+<input id="email" type="email" placeholder="이메일">
+<input id="password" type="password" placeholder="비밀번호">
+<button class="primary" style="width:100%;margin-top:7px" onclick="login()">로그인</button>
+<div id="loginMsg" class="small" style="margin-top:10px"></div>
+</div>
+
+<div id="app" class="wrap hidden">
+<div class="top">
+<div class="row" style="justify-content:space-between"><h1>대구중부 P9159</h1><button class="ghost" onclick="logout()">로그아웃</button></div>
+<div class="row">
+<input id="q" class="search" placeholder="수주번호 · 거래처 · 형번 · 색상 · 작지번호" oninput="render()">
+<label><input id="showDone" type="checkbox" onchange="render()"> 완료 포함</label>
+<button class="ghost" onclick="load()">새로고침</button>
+</div>
+<div id="count" class="small"></div>
+</div>
+<div id="cards"></div>
+</div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+
+const SUPABASE_URL='https://ezguzkwjfpklbuoubuek.supabase.co'
+const SUPABASE_KEY='sb_publishable_Rs4gu3YZNaf6sVK7M9LHuQ_f-l46pCX'
+const sb=createClient(SUPABASE_URL,SUPABASE_KEY)
+let rows=[]
+
+const $=id=>document.getElementById(id)
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))
+const num=v=>Number(v||0).toLocaleString('ko-KR',{maximumFractionDigits:2})
+const isDone=r=>r.exception_complete===true || r.status==='완료' || String(r.status||'').endsWith('완료')
+const displayStatus=r=>r.exception_complete?'예외완료':(r.status||'')
+
+window.login=async()=>{
+ const {error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value})
+ if(error){$('loginMsg').textContent=error.message;return}
+ showApp(); await load()
+}
+window.logout=async()=>{await sb.auth.signOut();location.reload()}
+async function showApp(){$('login').classList.add('hidden');$('app').classList.remove('hidden')}
+
+window.load=async()=>{
+ $('cards').innerHTML='<div class="msg">불러오는 중...</div>'
+ const {data,error}=await sb.from('nalmes_daegu_central').select('*').order('order_no',{ascending:false})
+ if(error){$('cards').innerHTML='<div class="msg">'+esc(error.message)+'</div>';return}
+ rows=data||[]; render()
+}
+
+window.render=()=>{
+ const q=$('q').value.trim().toLowerCase(), show=$('showDone').checked
+ let list=rows.filter(r=>{
+   if(!show && isDone(r)) return false
+   if(!q) return true
+   return [r.order_no,r.customer_no,r.customer_name,r.model,r.integrated_color,r.work_order_no]
+     .some(v=>String(v??'').toLowerCase().includes(q))
+ })
+ $('count').textContent=`표시 ${list.length}건 / 전체 ${rows.length}건`
+ $('cards').innerHTML=list.length?list.map(card).join(''):'<div class="msg">표시할 작지가 없습니다.</div>'
+}
+
+function card(r){
+ const procs=[
+  ['압출',r.extrusion_qty],['피막',r.coating_qty],['아크릴',r.acrylic_qty],['세라믹',r.ceramic_qty],
+  ['후로폰',r.fluorophone_qty],['아존',r.azon_qty],['PA',r.pa_qty],['제품입고',r.product_in_qty]
+ ]
+ const btn=r.exception_complete
+   ?`<button class="danger" onclick="setExc('${encodeURIComponent(r.row_key)}',false)">예외완료 취소</button>`
+   :(!isDone(r)?`<button class="exc" onclick="setExc('${encodeURIComponent(r.row_key)}',true)">예외완료</button>`:'')
+ return `<div class="card">
+  <div class="head"><div><div class="order">${esc(r.order_no)} <span class="badge">${esc(r.integrated_color)}</span></div>
+  <div class="sub">${esc(r.customer_name)} · ${esc(r.model)}</div></div><div class="status">${esc(displayStatus(r))}</div></div>
+  <div class="sub">작지 ${esc(r.work_order_no)} · 작지수량 ${num(r.work_qty)} · 최종 ${esc(r.final_process)}</div>
+  <div class="grid">${procs.map(([n,v])=>`<div class="cell">${n}<b>${num(v)}</b></div>`).join('')}</div>
+  <div class="actions">${btn}</div>
+ </div>`
+}
+
+window.setExc=async(encoded,value)=>{
+ const key=decodeURIComponent(encoded)
+ const {error}=await sb.rpc('set_daegu_central_exception',{p_row_key:key,p_value:value})
+ if(error){alert(error.message);return}
+ const r=rows.find(x=>x.row_key===key); if(r)r.exception_complete=value
+ render()
+}
+
+const {data:{session}}=await sb.auth.getSession()
+if(session){await showApp();await load()}
+</script>
+</body>
+</html>
