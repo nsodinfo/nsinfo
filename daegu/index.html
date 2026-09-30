@@ -11,7 +11,7 @@ h1{font-size:20px;margin:4px 0 12px}.row{display:flex;gap:8px;align-items:center
 input{font-size:16px;padding:11px;border:1px solid #ccc;border-radius:9px;min-width:0}.search{flex:1}
 button{border:0;border-radius:9px;padding:10px 12px;font-weight:700}.primary{background:#111;color:#fff}.ghost{background:#e8e9ec}
 .card{background:#fff;border-radius:12px;padding:13px;margin:10px 0;box-shadow:0 1px 4px #00000012}.head{display:flex;justify-content:space-between;gap:8px}
-.order{font-weight:800}.status{font-weight:800;white-space:nowrap}.sub{font-size:14px;color:#555;margin-top:4px}
+.order{font-weight:800}.status{font-weight:800;white-space:nowrap}.sub{font-size:14px;color:#555;margin-top:4px}.remark{margin-top:8px;padding:8px 10px;border-radius:9px;background:#fff4d6;font-size:13px;line-height:1.35}.remark b{margin-right:6px}
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}.cell{background:#f6f7f9;border-radius:8px;padding:7px;text-align:center;font-size:12px}.cell b{display:block;font-size:15px;margin-top:2px}
 .actions{display:flex;justify-content:flex-end;margin-top:10px}.exc{background:#eceef1}.danger{background:#111;color:#fff}
 .hidden{display:none}.msg{text-align:center;color:#666;padding:30px 5px}.login{max-width:420px;margin:80px auto;background:#fff;padding:22px;border-radius:14px}.login input{width:100%;margin:5px 0}
@@ -52,8 +52,8 @@ let rows=[]
 const $=id=>document.getElementById(id)
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))
 const num=v=>Number(v||0).toLocaleString('ko-KR',{maximumFractionDigits:2})
-const isDone=r=>r.exception_complete===true || r.status==='완료' || String(r.status||'').endsWith('완료')
-const displayStatus=r=>r.exception_complete?'예외완료':(r.status||'')
+const isDone=r=>r.exception_complete===true || String(r.status||'').trim()==='완료'
+const displayStatus=r=>r.exception_complete?'예외완료':(String(r.status||'').trim()==='완료'?'완료':'')
 
 window.login=async()=>{
  const {error}=await sb.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value})
@@ -113,8 +113,9 @@ function card(r){
  return `<div class="card">
   <div class="head"><div><div class="order">${esc(r.order_no)} <span class="badge">${esc(r.integrated_color)}</span></div>
   <div class="sub">${esc(r.customer_name)} · 형번 ${esc(r.model)}</div>
-  <div class="sub"><b>길이</b> ${fmtLen(r.length)} mm · <b>중량</b> ${fmtWeight(r.weight)} kg</div></div>${displayStatus(r)?`${displayStatus(r)?`<div class="status">${esc(displayStatus(r))}</div>`:''}`:''}</div>
+  <div class="sub"><b>길이</b> ${fmtLen(r.length)} mm · <b>중량</b> ${fmtWeight(r.weight)} kg</div></div>${displayStatus(r)?`<div class="status">${esc(displayStatus(r))}</div>`:''}</div>
   <div class="sub">작지 ${esc(r.work_order_no)} · 작지수량 ${num(r.work_qty)}</div>
+  ${String(r.remarks||'').trim()?`<div class="remark"><b>특이사항</b> ${esc(r.remarks)}</div>`:''}
   <div class="grid">${procs.map(([n,v])=>`<div class="cell">${n}<b>${num(v)}</b></div>`).join('')}</div>
   <div class="actions">${btn}</div>
  </div>`
