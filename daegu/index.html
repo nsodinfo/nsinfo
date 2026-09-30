@@ -16,6 +16,19 @@ button{border:0;border-radius:9px;padding:10px 12px;font-weight:700}.primary{bac
 .actions{display:flex;justify-content:flex-end;margin-top:10px}.exc{background:#eceef1}.danger{background:#111;color:#fff}
 .hidden{display:none}.msg{text-align:center;color:#666;padding:30px 5px}.login{max-width:420px;margin:80px auto;background:#fff;padding:22px;border-radius:14px}.login input{width:100%;margin:5px 0}
 .small{font-size:12px;color:#777}.badge{font-size:12px;background:#eee;padding:3px 7px;border-radius:20px}
+
+.summaryHead{align-items:flex-start;gap:18px}
+.summaryLeft{min-width:0;flex:1}
+.summaryRight{margin-left:auto;display:grid;grid-template-columns:repeat(2,minmax(135px,1fr));gap:7px 12px;min-width:340px;max-width:440px}
+.summaryItem{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:6px 9px;border-radius:8px;background:#f6f7f9}
+.summaryItem span{font-size:12px;color:#666;white-space:nowrap}
+.summaryItem strong{font-size:16px;line-height:1.2;text-align:right;word-break:break-word}
+.summaryRight .status{grid-column:1/-1;text-align:right}
+@media(max-width:650px){
+ .summaryHead{display:block}
+ .summaryRight{margin-top:9px;min-width:0;max-width:none;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .summaryItem strong{font-size:15px}
+}
 </style>
 </head>
 <body>
@@ -110,13 +123,22 @@ function card(r){
  const btn=r.exception_complete
    ?`<button class="danger" onclick="setExc('${encodeURIComponent(r.row_key)}',false)">예외완료 취소</button>`
    :(!isDone(r)?`<button class="exc" onclick="setExc('${encodeURIComponent(r.row_key)}',true)">예외완료</button>`:'')
- return `<div class="card">
-  <div class="head"><div><div class="order">${esc(r.order_no)} <span class="badge">${esc(r.integrated_color)}</span></div>
-  <div class="sub">${esc(r.customer_name)} · 형번 ${esc(r.model)}</div>
-  <div class="sub"><b>길이</b> ${fmtLen(r.length)} mm · <b>중량</b> ${fmtWeight(r.weight)} kg</div></div>${displayStatus(r)?`<div class="status">${esc(displayStatus(r))}</div>`:''}</div>
-  <div class="sub">작지 ${esc(r.work_order_no)} · 작지수량 ${num(r.work_qty)}</div>
-  ${String(r.remarks||'').trim()?`<div class="remark"><b>특이사항</b> ${esc(r.remarks)}</div>`:''}
-  <div class="grid">${procs.map(([n,v])=>`<div class="cell">${n}<b>${num(v)}</b></div>`).join('')}</div>
+ return `<div class="card"><div class="head summaryHead">
+  <div class="summaryLeft">
+    <div class="order">${esc(r.order_no)} <span class="badge">${esc(r.integrated_color)}</span></div>
+    <div class="sub">${esc(r.customer_name)}</div>
+    <div class="sub">작지 ${esc(r.work_order_no)}</div>
+  </div>
+  <div class="summaryRight">
+    <div class="summaryItem"><span>형번</span><strong>${esc(r.model)}</strong></div>
+    <div class="summaryItem"><span>길이</span><strong>${fmtLen(r.length)} mm</strong></div>
+    <div class="summaryItem"><span>중량</span><strong>${fmtWeight(r.weight)} kg</strong></div>
+    <div class="summaryItem"><span>작지수량</span><strong>${num(r.work_qty)}</strong></div>
+    ${displayStatus(r)?`<div class="status">${esc(displayStatus(r))}</div>`:''}
+  </div>
+</div>
+${String(r.remarks||'').trim()?`<div class="remark"><b>특이사항</b> ${esc(r.remarks)}</div>`:''}
+<div class="grid">${procs.map(([n,v])=>`<div class="cell">${n}<b>${num(v)}</b></div>`).join('')}</div>
   <div class="actions">${btn}</div>
  </div>`
 }
