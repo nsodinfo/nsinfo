@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>대구중부 생산현황 v0.4.1</title>
+<title>대구중부 생산현황 v0.3.1</title>
 <style>
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif;background:#f5f6f8;color:#111}
 .wrap{max-width:760px;margin:auto;padding:14px}.top{position:sticky;top:0;background:#f5f6f8;padding:8px 0 10px;z-index:5}
@@ -93,6 +93,15 @@ window.render=()=>{
  $('cards').innerHTML=list.length?list.map(card).join(''):'<div class="msg">표시할 작지가 없습니다.</div>'
 }
 
+function fmtLen(v){
+ const x=Number(v); if(!Number.isFinite(x)) return '-';
+ return x.toLocaleString('ko-KR',{maximumFractionDigits:3});
+}
+function fmtWeight(v){
+ const x=Number(v); if(!Number.isFinite(x)) return '-';
+ return x.toLocaleString('ko-KR',{maximumFractionDigits:3});
+}
+
 function card(r){
  const procs=[
   ['압출',r.extrusion_qty],['피막',r.coating_qty],['아크릴',r.acrylic_qty],['세라믹',r.ceramic_qty],
@@ -103,7 +112,8 @@ function card(r){
    :(!isDone(r)?`<button class="exc" onclick="setExc('${encodeURIComponent(r.row_key)}',true)">예외완료</button>`:'')
  return `<div class="card">
   <div class="head"><div><div class="order">${esc(r.order_no)} <span class="badge">${esc(r.integrated_color)}</span></div>
-  <div class="sub">${esc(r.customer_name)} · ${esc(r.model)}</div></div>${displayStatus(r)?`<div class="status">${esc(displayStatus(r))}</div>`:''}</div>
+  <div class="sub">${esc(r.customer_name)} · 형번 ${esc(r.model)}</div>
+  <div class="sub"><b>길이</b> ${fmtLen(r.length)} mm · <b>중량</b> ${fmtWeight(r.weight)} kg</div></div>${displayStatus(r)?`<div class="status">${esc(displayStatus(r))}</div>`:''}</div>
   <div class="sub">작지 ${esc(r.work_order_no)} · 작지수량 ${num(r.work_qty)} · 최종 ${esc(r.final_process)}</div>
   <div class="grid">${procs.map(([n,v])=>`<div class="cell">${n}<b>${num(v)}</b></div>`).join('')}</div>
   <div class="actions">${btn}</div>
