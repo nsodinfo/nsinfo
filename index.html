@@ -105,21 +105,31 @@ async function loadData(){
 }
 function txt(v){return (v??'').toString()}
 function esc(v){return txt(v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function effectiveStatus(r){
+  if(r.exception_complete) return '예외완료';
+  const c=txt(r.integrated_color).toUpperCase();
+  if(c.includes('BL')){
+    const j=Number(r.work_qty)||0, p=Number(r.coating_qty)||0;
+    if(j>0 && p>=j) return '완료';
+    return p>0 ? '피막진행' : '피막대기';
+  }
+  return txt(r.status).trim();
+}
 function render(){
   const q=$('search').value.trim().toLowerCase();
   const hideComplete=$('hideComplete').checked;
   let filtered=rows.filter(r=>{
     const matched=!q || [r.customer_no,r.customer_name,r.model,r.order_no].some(v=>txt(v).toLowerCase().includes(q));
-    const effectiveStatus=r.exception_complete?'예외완료':txt(r.status).trim();
-    const completed=['완료','예외완료'].includes(effectiveStatus);
+    const status=effectiveStatus(r);
+    const completed=['완료','예외완료'].includes(status);
     return matched && (!hideComplete || !completed);
   });
   $('count').textContent=`전체 ${rows.length}건 · 표시 ${filtered.length}건${hideComplete?' · 완료 제외':''}`;
   $('list').innerHTML=filtered.map(r=>`
     <div class="order">
-      <div class="top"><div><div class="name">${esc(r.customer_name||'-')}</div><div class="meta">${esc(r.customer_no||'-')} · ${esc(r.model||'-')} · ${esc(r.integrated_color||'-')}</div></div><div class="top-actions"><span class="badge">${esc(r.exception_complete?'예외완료':(r.status||'-'))}</span>${r.exception_complete
+      <div class="top"><div><div class="name">${esc(r.customer_name||'-')}</div><div class="meta">${esc(r.customer_no||'-')} · ${esc(r.model||'-')} · ${esc(r.integrated_color||'-')}</div></div><div class="top-actions"><span class="badge">${esc(effectiveStatus(r)||'-')}</span>${r.exception_complete
         ? `<button class="excbtn exc-cancel" onclick="toggleException('${esc(r.order_no)}',false)">취소</button>`
-        : (txt(r.status).trim()==='완료' ? '' : `<button class="excbtn exc-set" onclick="toggleException('${esc(r.order_no)}',true)">예외완료</button>`)}</div></div>
+        : (effectiveStatus(r)==='완료' ? '' : `<button class="excbtn exc-set" onclick="toggleException('${esc(r.order_no)}',true)">예외완료</button>`)}</div></div>
       <div class="meta">수주번호 ${esc(r.order_no||'-')} · 작지번호 ${esc(r.work_order_no||'-')} · 길이 ${esc(r.length||'-')}</div>
       <div class="qty"><div class="q"><b>${esc(r.work_qty)}</b><span>작지수량</span></div><div class="q"><b>${esc(r.extrusion_qty)}</b><span>압출수량</span></div><div class="q"><b>${esc(r.coating_qty)}</b><span>피막수량</span></div></div>
 
