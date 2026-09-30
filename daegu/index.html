@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>대구중부 생산현황 v0.2.1</title>
+<title>대구중부 생산현황 v0.3.1</title>
 <style>
 *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif;background:#f5f6f8;color:#111}
 .wrap{max-width:760px;margin:auto;padding:14px}.top{position:sticky;top:0;background:#f5f6f8;padding:8px 0 10px;z-index:5}
@@ -73,7 +73,7 @@ window.load=async()=>{
    if(!data || data.length<size) break
    from+=size
  }
- rows=all; render(); renderUpdated()
+ rows=all.filter(r=>!String(r.order_no||'').toUpperCase().startsWith('P')); render(); renderUpdated()
 }
 
 function renderUpdated(){
